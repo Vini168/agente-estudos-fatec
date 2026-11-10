@@ -1,0 +1,13 @@
+Aula 3 – Pré-processamento de texto em PLN
+
+O pré-processamento é a etapa que prepara o texto bruto para ser analisado por um algoritmo. Textos reais trazem ruído: letras maiúsculas e minúsculas misturadas, pontuação, acentos, palavras muito frequentes e variações de uma mesma palavra. Sem tratar esse ruído, o vocabulário fica grande demais e os modelos aprendem padrões irrelevantes.
+
+A tokenização é o processo de dividir o texto em unidades menores chamadas tokens. Na tokenização por palavras, a frase "O aluno estudou PLN." vira os tokens "O", "aluno", "estudou", "PLN" e ".". Modelos de linguagem modernos usam tokenização por subpalavras, como o BPE (Byte Pair Encoding), que quebra palavras raras em pedaços frequentes. Assim o modelo consegue representar palavras que nunca viu no treinamento.
+
+Stopwords são palavras muito frequentes que carregam pouco significado sozinhas, como "o", "a", "de", "que" e "em". Removê-las reduz o tamanho do vocabulário em tarefas como classificação de documentos e busca por palavras-chave. Porém, em tarefas que dependem da estrutura da frase, como tradução ou análise de sentimento, remover stopwords pode atrapalhar: a palavra "não" costuma estar na lista de stopwords e muda completamente o sentido de "não gostei".
+
+O stemming reduz as palavras ao seu radical cortando sufixos por meio de regras. Por exemplo, "estudando", "estudou" e "estudos" podem virar "estud". O stemming é rápido, mas o radical gerado nem sempre é uma palavra real. Para o português, o NLTK oferece o RSLPStemmer, criado especificamente para a nossa língua, além do SnowballStemmer.
+
+A lematização reduz cada palavra à sua forma de dicionário, chamada lema. "Estudando", "estudou" e "estudarão" viram "estudar"; "melhores" vira "melhor". Diferente do stemming, a lematização usa análise morfológica e a classe gramatical da palavra, por isso o resultado é sempre uma palavra válida. Ela é mais lenta que o stemming. Em português, a lematização costuma ser feita com o spaCy, usando o modelo pt_core_news_sm, porque o lematizador WordNet do NLTK funciona apenas para inglês.
+
+Depois do pré-processamento, o texto precisa ser transformado em números. O Bag of Words conta quantas vezes cada palavra aparece no documento. O TF-IDF pondera essa contagem: palavras frequentes em um documento, mas raras no conjunto de documentos, recebem peso maior. Já os embeddings representam palavras ou frases como vetores densos, em que textos de significado parecido ficam próximos no espaço vetorial. A proximidade entre dois embeddings costuma ser medida pela similaridade de cosseno.
