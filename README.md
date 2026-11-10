@@ -4,6 +4,8 @@ Agente de IA para estudos (disciplina de Processamento de Linguagem Natural — 
 O aluno envia o material da aula e faz perguntas. O agente encontra os trechos relevantes com busca
 semântica e responde com o Gemini, **citando as fontes** e sem inventar o que não está no material (RAG).
 
+**Site:** https://agente-estudos-fatec.vercel.app/
+
 Stack (a mesma do vídeo de referência): **Google Stitch** (layout) → **Google AI Studio / Gemini** (IA)
 → **Next.js** → **Supabase** (Postgres + pgvector) → **GitHub** → **Vercel**.
 
