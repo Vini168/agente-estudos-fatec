@@ -20,12 +20,14 @@ const NOMES_FERRAMENTAS: Record<string, string> = {
   gerar_quiz: "❓ gerou quiz",
 };
 
-// Markdown mínimo da resposta do Gemini: **negrito**, `código` e itens de lista com "*" ou "-"
+// Markdown mínimo da resposta do Gemini: **negrito**, *itálico*, `código` e itens de lista com "*" ou "-"
 function TextoFormatado({ texto }: { texto: string }) {
   const inline = (linha: string) =>
-    linha.split(/(\*\*[^*]+\*\*|`[^`]+`)/).map((parte, i) =>
+    linha.split(/(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|`[^`]+`)/).map((parte, i) =>
       parte.startsWith("**") ? (
         <b key={i}>{parte.slice(2, -2)}</b>
+      ) : parte.startsWith("*") && parte.length > 2 && parte.endsWith("*") ? (
+        <i key={i}>{parte.slice(1, -1)}</i>
       ) : parte.startsWith("`") ? (
         <code key={i} className="rounded bg-slate-200 px-1">
           {parte.slice(1, -1)}
