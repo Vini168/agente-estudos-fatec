@@ -1,39 +1,50 @@
 # 📚 Agente de Estudos Fatec
 
 Agente de IA para estudos (disciplina de Processamento de Linguagem Natural — Fatec Cotia).
-O aluno envia o material da aula e faz perguntas. O agente encontra os trechos relevantes com busca
-semântica e responde com o Gemini, **citando as fontes** e sem inventar o que não está no material (RAG).
+O aluno envia o material da aula (PDF, TXT ou texto colado) e conversa com o agente. O agente decide
+sozinho qual ferramenta usar: **buscar** no material e responder com citações, **resumir** um material
+ou **gerar um quiz**. Ele responde só com o que está no material e diz quando o assunto não está lá (RAG).
 
-**Site:** https://agente-estudos-fatec.vercel.app/
+**Site:** https://agente-estudos-fatec.vercel.app/ (precisa de login)
 
 Stack (a mesma do vídeo de referência): **Google Stitch** (layout) → **Google AI Studio / Gemini** (IA)
-→ **Next.js** → **Supabase** (Postgres + pgvector) → **GitHub** → **Vercel**.
+→ **Next.js** → **Supabase** (Postgres + pgvector + Auth) → **GitHub** → **Vercel**.
 
 ## Como funciona
 
 ```
-Ingestão:  texto → normalização → sentenças → trechos (~180 palavras, 1 sentença de sobreposição)
-           → embeddings (gemini-embedding-001, 768 dim.) → Supabase (tabela trechos)
+Ingestão:  PDF/TXT → extração de texto → normalização → sentenças → trechos (~180 palavras,
+           1 sentença de sobreposição) → embeddings (gemini-embedding-001, 768 dim.) → Supabase
 
-Pergunta:  pergunta → embedding → buscar_trechos (cosseno, top 5, mínimo 0,55)
-           → prompt com os trechos numerados → Gemini → resposta com citações [1], [2]
+Agente:    mensagem + histórico → Gemini com 3 ferramentas (function calling), até 4 passos
+             buscar_material   → busca vetorial (cosseno, top 5, similaridade ≥ 0,55) só nos materiais do aluno
+             resumir_material  → resumo map-reduce (blocos de 2.500 palavras → resumo final)
+             gerar_quiz        → questões de múltipla escolha em JSON validado por schema
+           → resposta com citações [1], [2] + fontes + quiz interativo
 ```
 
 | Arquivo | O que faz |
 |---|---|
 | `src/lib/chunking.ts` | Pré-processamento e segmentação (PLN) |
-| `src/lib/gemini.ts` | Embeddings e geração de texto com o Gemini |
-| `src/lib/agente.ts` | Ingestão e o fluxo de pergunta (RAG) |
-| `src/app/api/*` | Rotas `GET/POST /api/documentos` e `POST /api/perguntar` |
-| `supabase/migrations/0001_inicial.sql` | Tabelas, índice vetorial e a função `buscar_trechos` |
-| `tests/chunking.test.ts` | Testes da segmentação |
+| `src/lib/arquivos.ts` | Extração de texto de PDF (unpdf), TXT e MD |
+| `src/lib/gemini.ts` | Embeddings, geração de texto/JSON e troca de modelo em caso de sobrecarga |
+| `src/lib/ferramentas.ts` | Ferramentas do agente: busca, resumo e quiz |
+| `src/lib/agente.ts` | Ingestão e o laço do agente (function calling) |
+| `src/lib/auth.ts` | Login com Supabase Auth (sessão em cookie httpOnly) |
+| `src/app/api/*` | `sessao` (login), `documentos`, `agente`, `saude` (cron diário) |
+| `supabase/migrations/` | Tabelas, índice vetorial, função `buscar_trechos` e dono de cada material |
+| `scripts/avaliar.ts` | Avaliação da recuperação e calibração do limiar → `docs/avaliacao.md` |
+| `scripts/criar-usuario.ts` | Cria um usuário de login com senha aleatória |
+| `tests/` | Testes da segmentação e o conjunto de perguntas de avaliação |
 
 ## Rodando localmente
 
-1. Crie um projeto no [Supabase](https://supabase.com) e rode `supabase/migrations/0001_inicial.sql` no **SQL Editor**.
+1. Crie um projeto no [Supabase](https://supabase.com) e rode os arquivos de `supabase/migrations/` em ordem no **SQL Editor**.
 2. Pegue uma chave do Gemini em <https://aistudio.google.com/apikey>.
 3. Copie `.env.example` para `.env.local` e preencha.
-4. Rode:
+4. Crie um usuário: `node --env-file=.env.local scripts/criar-usuario.ts voce@exemplo.com`
+   (a senha fica em `.env.login-teste.local`). Também dá para criar em Supabase → Authentication → Add user.
+5. Rode:
 
 ```bash
 npm install
@@ -41,7 +52,14 @@ npm test
 npm run dev
 ```
 
+Avaliação da busca (gasta poucas chamadas de embedding):
+
+```bash
+node --env-file=.env.local scripts/avaliar.ts
+```
+
 ## Deploy (igual ao vídeo)
 
-Suba o repositório no GitHub, importe-o na Vercel (o framework Next.js é detectado sozinho) e cadastre as
-variáveis do `.env.example` em **Environment Variables**.
+O repositório está ligado à Vercel: cada push na `main` publica uma versão nova. As variáveis do
+`.env.example` ficam em **Settings → Environment Variables** da Vercel. O `vercel.json` agenda um
+acesso diário a `/api/saude`, que impede o Supabase gratuito de pausar por inatividade.
